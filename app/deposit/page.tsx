@@ -20,9 +20,16 @@ const appearance: Appearance = {
     colorText: "#e2e8f0",
     colorDanger: "#f87171",
     borderRadius: "8px",
-    fontFamily: "var(--font-inter), system-ui, sans-serif",
+    // The Element renders in an iframe, so CSS vars from the page aren't
+    // available — use a concrete stack and load Inter via the `fonts` option.
+    fontFamily: "Inter, system-ui, -apple-system, Segoe UI, Roboto, sans-serif",
   },
 };
+
+/** Load Inter inside the Payment Element iframe so it matches the app font. */
+const fonts = [
+  { cssSrc: "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" },
+];
 
 export default function DepositPage() {
   const [amount, setAmount] = useState(25);
@@ -103,7 +110,7 @@ export default function DepositPage() {
           </button>
         </form>
       ) : (
-        <Elements stripe={stripePromise} options={{ clientSecret, appearance }}>
+        <Elements stripe={stripePromise} options={{ clientSecret, appearance, fonts }}>
           <PaymentForm amount={amount} onBack={() => setClientSecret(null)} />
         </Elements>
       )}
