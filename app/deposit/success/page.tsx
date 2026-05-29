@@ -1,23 +1,61 @@
 import Link from "next/link";
+import { stripe } from "@/lib/stripe";
 import { usd } from "@/lib/format";
+import { CreditOnSuccess } from "@/components/CreditOnSuccess";
 
 export default async function DepositSuccessPage({
   searchParams,
 }: {
-  searchParams: Promise<{ amount?: string }>;
+  searchParams: Promise<{ session_id?: string }>;
 }) {
-  const { amount } = await searchParams;
-  const n = Number(amount) || 0;
-  const kestoAmount = (n * 100).toLocaleString("en-US");
+  const { session_id } = await searchParams;
+
+  let paidUsd = 0;
+  let verified = false;
+  if (session_id) {
+    try {
+      const session = await stripe.checkout.sessions.retrieve(session_id);
+      if (session.payment_status === "paid") {
+        verified = true;
+        paidUsd = (session.amount_total ?? 0) / 100;
+      }
+    } catch {
+      verified = false;
+    }
+  }
+
+  if (!verified) {
+    return (
+      <div className="mx-auto max-w-md text-center">
+        <div className="card p-8">
+          <div className="text-5xl">🤔</div>
+          <h1 className="mt-4 text-2xl font-bold">Payment not confirmed</h1>
+          <p className="mt-2 text-slate-300">
+            We couldn&apos;t verify this checkout session. If you were charged in test mode (you weren&apos;t — it&apos;s
+            test mode), nothing happened.
+          </p>
+          <Link
+            href="/deposit"
+            className="mt-6 inline-flex rounded-xl bg-kesto-lime px-6 py-3 font-bold text-kesto-bg hover:brightness-110"
+          >
+            Back to deposit
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  const kestoAmount = (paidUsd * 100).toLocaleString("en-US");
 
   return (
     <div className="mx-auto max-w-md text-center">
+      <CreditOnSuccess sessionId={session_id!} usdAmount={paidUsd} />
       <div className="card p-8">
         <div className="text-5xl">🎉</div>
         <h1 className="mt-4 text-2xl font-bold">Deposit complete</h1>
         <p className="mt-2 text-slate-300">
-          {usd(n)} became <span className="font-semibold text-kesto-lime">{kestoAmount} $KESTO</span>. Economists hate this
-          one trick.
+          {usd(paidUsd)} became <span className="font-semibold text-kesto-lime">{kestoAmount} $KESTO</span>. Economists
+          hate this one trick.
         </p>
         <Link
           href="/markets"
@@ -25,7 +63,7 @@ export default async function DepositSuccessPage({
         >
           Go lose it all →
         </Link>
-        <p className="mt-3 text-xs text-slate-500">No card was charged. This is a parody. You are fine.</p>
+        <p className="mt-3 text-xs text-slate-500">Charged in Stripe test mode only. This is a parody. You are fine.</p>
       </div>
     </div>
   );

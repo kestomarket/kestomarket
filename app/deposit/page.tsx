@@ -1,32 +1,62 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
-import { useRouter } from "next/navigation";
+import { Suspense, useState, type FormEvent } from "react";
+import { useSearchParams } from "next/navigation";
 import clsx from "clsx";
-import { useWallet } from "@/lib/wallet";
 import { usd } from "@/lib/format";
 
 const PRESETS = [10, 25, 100];
 
 export default function DepositPage() {
-  const router = useRouter();
-  const { deposit } = useWallet();
-  const [amount, setAmount] = useState(25);
+  return (
+    <Suspense>
+      <DepositForm />
+    </Suspense>
+  );
+}
 
-  function onSubmit(e: FormEvent) {
+function DepositForm() {
+  const searchParams = useSearchParams();
+  const canceled = searchParams.get("canceled") === "1";
+  const [amount, setAmount] = useState(25);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function onSubmit(e: FormEvent) {
     e.preventDefault();
-    // NOTE: real revenue (the lagging metric) will come from the Stripe connector,
-    // not from app code (PLAN.md §7). This only tops up the play balance.
-    deposit(amount);
-    router.push(`/deposit/success?amount=${amount}`);
+    setError(null);
+    setLoading(true);
+    try {
+      const res = await fetch("/api/checkout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ amount }),
+      });
+      const data = (await res.json()) as { url?: string; error?: string };
+      if (!res.ok || !data.url) {
+        throw new Error(data.error ?? "Could not start checkout. Try again.");
+      }
+      // Hand off to Stripe's hosted checkout page.
+      window.location.href = data.url;
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Something went wrong.");
+      setLoading(false);
+    }
   }
 
   return (
     <div className="mx-auto max-w-md">
       <h1 className="text-2xl font-bold">Add funds</h1>
       <p className="mt-1 text-slate-400">
-        Convert real-feeling dollars into $KESTO at a generous rate of 100 $KESTO per $1. (Test mode — no charge.)
+        Convert real-feeling dollars into $KESTO at a generous rate of 100 $KESTO per $1. Checkout runs in Stripe test
+        mode — use card <span className="tabular-nums text-slate-300">4242 4242 4242 4242</span>, any future date, any CVC.
       </p>
+
+      {canceled && (
+        <p className="mt-4 rounded-lg border border-amber-500/40 bg-amber-500/10 p-3 text-sm text-amber-300">
+          Checkout canceled — no charge was made. Pick an amount to try again.
+        </p>
+      )}
 
       <form onSubmit={onSubmit} className="card mt-6 space-y-5 p-6">
         <div className="grid grid-cols-3 gap-2">
@@ -59,25 +89,19 @@ export default function DepositPage() {
           />
         </div>
 
-        <div className="rounded-lg border border-kesto-line bg-kesto-bg/60 p-3 text-sm">
-          <p className="mb-2 text-xs uppercase tracking-wide text-slate-500">Card details (test mode)</p>
-          <input
-            disabled
-            value="4242 4242 4242 4242"
-            className="w-full rounded-md border border-kesto-line bg-kesto-bg px-3 py-2 tabular-nums text-slate-400"
-          />
-          <div className="mt-2 flex gap-2">
-            <input disabled value="12 / 34" className="w-1/2 rounded-md border border-kesto-line bg-kesto-bg px-3 py-2 text-slate-400" />
-            <input disabled value="424" className="w-1/2 rounded-md border border-kesto-line bg-kesto-bg px-3 py-2 text-slate-400" />
-          </div>
-        </div>
+        {error && (
+          <p className="rounded-lg border border-red-500/40 bg-red-500/10 p-3 text-sm text-red-300">{error}</p>
+        )}
 
         <button
           type="submit"
           data-attr="deposit-submit"
-          className="w-full rounded-xl bg-kesto-lime py-3 font-bold text-kesto-bg hover:brightness-110"
+          disabled={loading}
+          className="w-full rounded-xl bg-kesto-lime py-3 font-bold text-kesto-bg hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-60"
         >
-          Deposit {usd(amount)} → {(amount * 100).toLocaleString("en-US")} $KESTO
+          {loading
+            ? "Redirecting to Stripe…"
+            : `Deposit ${usd(amount)} → ${(amount * 100).toLocaleString("en-US")} $KESTO`}
         </button>
       </form>
     </div>
