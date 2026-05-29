@@ -6,18 +6,18 @@ import { CreditOnSuccess } from "@/components/CreditOnSuccess";
 export default async function DepositSuccessPage({
   searchParams,
 }: {
-  searchParams: Promise<{ session_id?: string }>;
+  searchParams: Promise<{ payment_intent?: string }>;
 }) {
-  const { session_id } = await searchParams;
+  const { payment_intent } = await searchParams;
 
   let paidUsd = 0;
   let verified = false;
-  if (session_id) {
+  if (payment_intent) {
     try {
-      const session = await stripe.checkout.sessions.retrieve(session_id);
-      if (session.payment_status === "paid") {
+      const intent = await stripe.paymentIntents.retrieve(payment_intent);
+      if (intent.status === "succeeded") {
         verified = true;
-        paidUsd = (session.amount_total ?? 0) / 100;
+        paidUsd = (intent.amount_received ?? intent.amount ?? 0) / 100;
       }
     } catch {
       verified = false;
@@ -49,7 +49,7 @@ export default async function DepositSuccessPage({
 
   return (
     <div className="mx-auto max-w-md text-center">
-      <CreditOnSuccess sessionId={session_id!} usdAmount={paidUsd} />
+      <CreditOnSuccess sessionId={payment_intent!} usdAmount={paidUsd} />
       <div className="card p-8">
         <div className="text-5xl">🎉</div>
         <h1 className="mt-4 text-2xl font-bold">Deposit complete</h1>

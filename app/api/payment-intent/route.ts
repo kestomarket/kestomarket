@@ -21,27 +21,13 @@ export async function POST(req: Request) {
     );
   }
 
-  const origin = req.headers.get("origin") ?? new URL(req.url).origin;
-
-  const session = await stripe.checkout.sessions.create({
-    mode: "payment",
-    line_items: [
-      {
-        quantity: 1,
-        price_data: {
-          currency: "usd",
-          unit_amount: amount * 100, // cents
-          product_data: {
-            name: `${(amount * KESTO_PER_USD).toLocaleString("en-US")} $KESTO top-up`,
-            description: "Play-money credit for KestoMarket (parody — $KESTO is worth $0.00).",
-          },
-        },
-      },
-    ],
+  const intent = await stripe.paymentIntents.create({
+    amount: amount * 100, // cents
+    currency: "usd",
+    automatic_payment_methods: { enabled: true },
+    description: `${(amount * KESTO_PER_USD).toLocaleString("en-US")} $KESTO top-up`,
     metadata: { kesto_usd: String(amount) },
-    success_url: `${origin}/deposit/success?session_id={CHECKOUT_SESSION_ID}`,
-    cancel_url: `${origin}/deposit?canceled=1`,
   });
 
-  return NextResponse.json({ url: session.url });
+  return NextResponse.json({ clientSecret: intent.client_secret });
 }

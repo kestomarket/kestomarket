@@ -1,45 +1,53 @@
 "use client";
 
-import { Suspense, useState, type FormEvent } from "react";
-import { useSearchParams } from "next/navigation";
+import { useState, type FormEvent } from "react";
+import { useRouter } from "next/navigation";
 import clsx from "clsx";
+import { Elements, PaymentElement, useElements, useStripe } from "@stripe/react-stripe-js";
+import type { Appearance } from "@stripe/stripe-js";
+import { getStripe } from "@/lib/stripe-client";
 import { usd } from "@/lib/format";
 
 const PRESETS = [10, 25, 100];
+const stripePromise = getStripe();
+
+/** Match the Payment Element to the KestoMarket dark theme. */
+const appearance: Appearance = {
+  theme: "night",
+  variables: {
+    colorPrimary: "#c6f135",
+    colorBackground: "#0b1020",
+    colorText: "#e2e8f0",
+    colorDanger: "#f87171",
+    borderRadius: "8px",
+    fontFamily: "var(--font-inter), system-ui, sans-serif",
+  },
+};
 
 export default function DepositPage() {
-  return (
-    <Suspense>
-      <DepositForm />
-    </Suspense>
-  );
-}
-
-function DepositForm() {
-  const searchParams = useSearchParams();
-  const canceled = searchParams.get("canceled") === "1";
   const [amount, setAmount] = useState(25);
+  const [clientSecret, setClientSecret] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  async function onSubmit(e: FormEvent) {
+  async function startPayment(e: FormEvent) {
     e.preventDefault();
     setError(null);
     setLoading(true);
     try {
-      const res = await fetch("/api/checkout", {
+      const res = await fetch("/api/payment-intent", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ amount }),
       });
-      const data = (await res.json()) as { url?: string; error?: string };
-      if (!res.ok || !data.url) {
-        throw new Error(data.error ?? "Could not start checkout. Try again.");
+      const data = (await res.json()) as { clientSecret?: string; error?: string };
+      if (!res.ok || !data.clientSecret) {
+        throw new Error(data.error ?? "Could not start payment. Try again.");
       }
-      // Hand off to Stripe's hosted checkout page.
-      window.location.href = data.url;
+      setClientSecret(data.clientSecret);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong.");
+    } finally {
       setLoading(false);
     }
   }
@@ -48,62 +56,122 @@ function DepositForm() {
     <div className="mx-auto max-w-md">
       <h1 className="text-2xl font-bold">Add funds</h1>
       <p className="mt-1 text-slate-400">
-        Convert real-feeling dollars into $KESTO at a generous rate of 100 $KESTO per $1. Checkout runs in Stripe test
-        mode — use card <span className="tabular-nums text-slate-300">4242 4242 4242 4242</span>, any future date, any CVC.
+        Convert real-feeling dollars into $KESTO at a generous rate of 100 $KESTO per $1. Pay with Stripe in test mode —
+        use card <span className="tabular-nums text-slate-300">4242 4242 4242 4242</span>, any future date, any CVC.
       </p>
 
-      {canceled && (
-        <p className="mt-4 rounded-lg border border-amber-500/40 bg-amber-500/10 p-3 text-sm text-amber-300">
-          Checkout canceled — no charge was made. Pick an amount to try again.
-        </p>
+      {!clientSecret ? (
+        <form onSubmit={startPayment} className="card mt-6 space-y-5 p-6">
+          <div className="grid grid-cols-3 gap-2">
+            {PRESETS.map((p) => (
+              <button
+                key={p}
+                type="button"
+                onClick={() => setAmount(p)}
+                className={clsx(
+                  "rounded-lg border py-3 font-semibold",
+                  amount === p ? "border-kesto-lime bg-kesto-lime/10 text-kesto-lime" : "border-kesto-line text-slate-300",
+                )}
+              >
+                {usd(p)}
+              </button>
+            ))}
+          </div>
+
+          <div>
+            <label className="block text-xs text-slate-400" htmlFor="amount">
+              Amount (USD)
+            </label>
+            <input
+              id="amount"
+              type="number"
+              min={1}
+              value={amount}
+              onChange={(e) => setAmount(Number(e.target.value))}
+              className="mt-1 w-full rounded-lg border border-kesto-line bg-kesto-bg px-3 py-2 tabular-nums outline-none focus:border-kesto-lime"
+            />
+          </div>
+
+          {error && <p className="rounded-lg border border-red-500/40 bg-red-500/10 p-3 text-sm text-red-300">{error}</p>}
+
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full rounded-xl bg-kesto-lime py-3 font-bold text-kesto-bg hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            {loading ? "Preparing…" : `Continue to payment → ${(amount * 100).toLocaleString("en-US")} $KESTO`}
+          </button>
+        </form>
+      ) : (
+        <Elements stripe={stripePromise} options={{ clientSecret, appearance }}>
+          <PaymentForm amount={amount} onBack={() => setClientSecret(null)} />
+        </Elements>
       )}
-
-      <form onSubmit={onSubmit} className="card mt-6 space-y-5 p-6">
-        <div className="grid grid-cols-3 gap-2">
-          {PRESETS.map((p) => (
-            <button
-              key={p}
-              type="button"
-              onClick={() => setAmount(p)}
-              className={clsx(
-                "rounded-lg border py-3 font-semibold",
-                amount === p ? "border-kesto-lime bg-kesto-lime/10 text-kesto-lime" : "border-kesto-line text-slate-300",
-              )}
-            >
-              {usd(p)}
-            </button>
-          ))}
-        </div>
-
-        <div>
-          <label className="block text-xs text-slate-400" htmlFor="amount">
-            Amount (USD)
-          </label>
-          <input
-            id="amount"
-            type="number"
-            min={1}
-            value={amount}
-            onChange={(e) => setAmount(Number(e.target.value))}
-            className="mt-1 w-full rounded-lg border border-kesto-line bg-kesto-bg px-3 py-2 tabular-nums outline-none focus:border-kesto-lime"
-          />
-        </div>
-
-        {error && (
-          <p className="rounded-lg border border-red-500/40 bg-red-500/10 p-3 text-sm text-red-300">{error}</p>
-        )}
-
-        <button
-          type="submit"
-          data-attr="deposit-submit"
-          disabled={loading}
-          className="w-full rounded-xl bg-kesto-lime py-3 font-bold text-kesto-bg hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-60"
-        >
-          {loading
-            ? "Redirecting to Stripe…"
-            : `Deposit ${usd(amount)} → ${(amount * 100).toLocaleString("en-US")} $KESTO`}
-        </button>
-      </form>
     </div>
+  );
+}
+
+function PaymentForm({ amount, onBack }: { amount: number; onBack: () => void }) {
+  const stripe = useStripe();
+  const elements = useElements();
+  const router = useRouter();
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function onSubmit(e: FormEvent) {
+    e.preventDefault();
+    if (!stripe || !elements) return;
+    setSubmitting(true);
+    setError(null);
+
+    const { error: confirmError, paymentIntent } = await stripe.confirmPayment({
+      elements,
+      redirect: "if_required",
+      confirmParams: {
+        // Used only if a redirect (e.g. 3DS) is required. The success page
+        // re-verifies the PaymentIntent server-side before crediting.
+        return_url: `${window.location.origin}/deposit/success`,
+      },
+    });
+
+    if (confirmError) {
+      setError(confirmError.message ?? "Payment failed. Please try again.");
+      setSubmitting(false);
+      return;
+    }
+
+    if (paymentIntent?.status === "succeeded") {
+      router.push(`/deposit/success?payment_intent=${paymentIntent.id}`);
+      return;
+    }
+
+    setError("Payment is processing. Check back shortly.");
+    setSubmitting(false);
+  }
+
+  return (
+    <form onSubmit={onSubmit} className="card mt-6 space-y-5 p-6">
+      <PaymentElement />
+
+      {error && <p className="rounded-lg border border-red-500/40 bg-red-500/10 p-3 text-sm text-red-300">{error}</p>}
+
+      <button
+        type="submit"
+        data-attr="deposit-submit"
+        disabled={!stripe || submitting}
+        className="w-full rounded-xl bg-kesto-lime py-3 font-bold text-kesto-bg hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-60"
+      >
+        {submitting ? "Processing…" : `Pay ${usd(amount)}`}
+      </button>
+
+      <button
+        type="button"
+        onClick={onBack}
+        disabled={submitting}
+        className="w-full text-center text-sm text-slate-400 hover:text-slate-200 disabled:opacity-60"
+      >
+        ← Change amount
+      </button>
+    </form>
   );
 }
