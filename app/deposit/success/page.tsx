@@ -1,0 +1,32 @@
+import Link from "next/link";
+import { usd } from "@/lib/format";
+
+export default async function DepositSuccessPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ amount?: string }>;
+}) {
+  const { amount } = await searchParams;
+  const n = Number(amount) || 0;
+  const kestoAmount = (n * 100).toLocaleString("en-US");
+
+  return (
+    <div className="mx-auto max-w-md text-center">
+      <div className="card p-8">
+        <div className="text-5xl">🎉</div>
+        <h1 className="mt-4 text-2xl font-bold">Deposit complete</h1>
+        <p className="mt-2 text-slate-300">
+          {usd(n)} became <span className="font-semibold text-kesto-lime">{kestoAmount} $KESTO</span>. Economists hate this
+          one trick.
+        </p>
+        <Link
+          href="/markets"
+          className="mt-6 inline-flex rounded-xl bg-kesto-lime px-6 py-3 font-bold text-kesto-bg hover:brightness-110"
+        >
+          Go lose it all →
+        </Link>
+        <p className="mt-3 text-xs text-slate-500">No card was charged. This is a parody. You are fine.</p>
+      </div>
+    </div>
+  );
+}
