@@ -1,6 +1,10 @@
 # KestoMarket
 
 A parody prediction market — *"Bet on literally anything. Be wrong with confidence."*
+
+<!-- metrik-experiment-automation -->
+> This repository is connected to Metrik for experiment automation.
+
 It's the demo app that **Metrik** optimizes.
 
 > Parody only. No real money, no real betting. `$KESTO` is play money worth $0.00.
