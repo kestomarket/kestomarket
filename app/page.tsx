@@ -7,7 +7,16 @@ export default function HomePage() {
   const featured = MARKETS.slice(0, 6);
   return (
     <div className="space-y-12">
-      <HeroCta />
+      <div className="flex flex-col items-start gap-4">
+        <HeroCta />
+        <Link
+          href="/signup"
+          className="bg-red-600 hover:bg-red-700 text-white font-semibold px-6 py-3 rounded-lg"
+          data-experiment="bff7f1eb-dd48-442c-8760-f32961506a6f"
+        >
+          Get started
+        </Link>
+      </div>
 
       <section>
         <div className="flex items-end justify-between">
