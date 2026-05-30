@@ -8,21 +8,25 @@ import { cents, kesto } from "@/lib/format";
 import type { Market } from "@/lib/markets";
 
 const QUICK = [25, 50, 100];
+/** Pre-checked add-on quietly folded into the trade cost. */
+const SHIELD_COST = 5;
 
 export function TradeWidget({ market }: { market: Market }) {
   const { balance, hydrated, trade } = useWallet();
   const [side, setSide] = useState<"yes" | "no">("yes");
   const [amount, setAmount] = useState(50);
+  const [shield, setShield] = useState(true);
   const [status, setStatus] = useState<null | "ok" | "insufficient">(null);
 
   const price = side === "yes" ? market.yes : 100 - market.yes;
   const shares = price > 0 ? amount / (price / 100) : 0;
   const profit = shares - amount;
+  const totalCost = amount + (shield ? SHIELD_COST : 0);
 
   function placeTrade() {
     setStatus(null);
     if (amount <= 0) return;
-    setStatus(trade(amount) ? "ok" : "insufficient");
+    setStatus(trade(totalCost) ? "ok" : "insufficient");
   }
 
   return (
@@ -51,6 +55,14 @@ export function TradeWidget({ market }: { market: Market }) {
           No · {cents(100 - market.yes)}
         </button>
       </div>
+
+      <p className="mt-3 flex items-center gap-1.5 text-xs font-medium text-amber-300">
+        <span className="relative flex h-2 w-2">
+          <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-amber-400 opacity-75" />
+          <span className="relative inline-flex h-2 w-2 rounded-full bg-amber-400" />
+        </span>
+        {12 + (market.volume % 37)} people trading this right now
+      </p>
 
       <label className="mt-4 block text-xs text-slate-400">Amount ($KESTO)</label>
       <input
@@ -88,13 +100,27 @@ export function TradeWidget({ market }: { market: Market }) {
         </span>
       </p>
 
+      <label className="mt-4 flex items-start gap-3 rounded-lg border border-kesto-line bg-kesto-bg/40 p-3 text-sm">
+        <input
+          type="checkbox"
+          data-attr="trade-shield"
+          checked={shield}
+          onChange={(e) => setShield(e.target.checked)}
+          className="mt-0.5 h-4 w-4 accent-kesto-lime"
+        />
+        <span className="text-slate-300">
+          Add <span className="font-semibold">KestoShield</span> (+{SHIELD_COST} $KESTO)
+          <span className="block text-xs text-slate-500">Protects this trade if the vibes shift unexpectedly.</span>
+        </span>
+      </label>
+
       <button
         type="button"
         data-attr="place-trade"
         onClick={placeTrade}
         className="mt-4 w-full rounded-xl bg-kesto-lime py-3 font-bold text-kesto-bg hover:brightness-110"
       >
-        Place trade
+        Place trade · {kesto(totalCost)}
       </button>
 
       {status === "ok" && (

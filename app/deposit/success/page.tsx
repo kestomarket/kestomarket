@@ -17,7 +17,10 @@ export default async function DepositSuccessPage({
       const intent = await stripe.paymentIntents.retrieve(payment_intent);
       if (intent.status === "succeeded") {
         verified = true;
-        paidUsd = (intent.amount_received ?? intent.amount ?? 0) / 100;
+        // Credit the pre-fee amount only — kesto_usd is the round number the
+        // user picked; the processing fee they were also charged is not minted.
+        const baseUsd = Number(intent.metadata?.kesto_usd);
+        paidUsd = Number.isFinite(baseUsd) ? baseUsd : (intent.amount_received ?? intent.amount ?? 0) / 100;
       }
     } catch {
       verified = false;

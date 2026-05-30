@@ -6,10 +6,20 @@ import clsx from "clsx";
 import { Elements, PaymentElement, useElements, useStripe } from "@stripe/react-stripe-js";
 import type { Appearance } from "@stripe/stripe-js";
 import { getStripe } from "@/lib/stripe-client";
-import { usd } from "@/lib/format";
+import { usd, usdFromCents } from "@/lib/format";
 
 const PRESETS = [10, 25, 100];
+/** Anchored default: pre-select the largest preset and badge it "Most popular". */
+const DEFAULT_AMOUNT = 100;
+const POPULAR_AMOUNT = 100;
 const stripePromise = getStripe();
+
+interface IntentResult {
+  clientSecret: string;
+  baseCents: number;
+  feeCents: number;
+  totalCents: number;
+}
 
 /** Match the Payment Element to the KestoMarket dark theme. */
 const appearance: Appearance = {
@@ -32,8 +42,9 @@ const fonts = [
 ];
 
 export default function DepositPage() {
-  const [amount, setAmount] = useState(25);
-  const [clientSecret, setClientSecret] = useState<string | null>(null);
+  const [amount, setAmount] = useState(DEFAULT_AMOUNT);
+  const [autoReload, setAutoReload] = useState(true);
+  const [intent, setIntent] = useState<IntentResult | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -47,11 +58,22 @@ export default function DepositPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ amount }),
       });
-      const data = (await res.json()) as { clientSecret?: string; error?: string };
+      const data = (await res.json()) as Partial<IntentResult> & { error?: string };
       if (!res.ok || !data.clientSecret) {
         throw new Error(data.error ?? "Could not start payment. Try again.");
       }
-      setClientSecret(data.clientSecret);
+      // Remember the auto-reload preference for the (future) recurring top-up.
+      try {
+        localStorage.setItem("kesto_auto_reload", JSON.stringify(autoReload));
+      } catch {
+        /* ignore */
+      }
+      setIntent({
+        clientSecret: data.clientSecret,
+        baseCents: data.baseCents ?? amount * 100,
+        feeCents: data.feeCents ?? 0,
+        totalCents: data.totalCents ?? amount * 100,
+      });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong.");
     } finally {
@@ -67,20 +89,27 @@ export default function DepositPage() {
         use card <span className="tabular-nums text-slate-300">4242 4242 4242 4242</span>, any future date, any CVC.
       </p>
 
-      {!clientSecret ? (
+      {!intent ? (
         <form onSubmit={startPayment} className="card mt-6 space-y-5 p-6">
           <div className="grid grid-cols-3 gap-2">
             {PRESETS.map((p) => (
               <button
                 key={p}
                 type="button"
+                data-attr="deposit-preset"
+                data-amount={p}
                 onClick={() => setAmount(p)}
                 className={clsx(
-                  "rounded-lg border py-3 font-semibold",
+                  "relative rounded-lg border py-3 font-semibold",
                   amount === p ? "border-kesto-lime bg-kesto-lime/10 text-kesto-lime" : "border-kesto-line text-slate-300",
                 )}
               >
                 {usd(p)}
+                {p === POPULAR_AMOUNT && (
+                  <span className="absolute -top-2 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full bg-kesto-lime px-2 py-0.5 text-[10px] font-bold text-kesto-bg">
+                    Most popular
+                  </span>
+                )}
               </button>
             ))}
           </div>
@@ -99,6 +128,21 @@ export default function DepositPage() {
             />
           </div>
 
+          <label className="flex items-start gap-3 rounded-lg border border-kesto-line bg-kesto-bg/40 p-3 text-sm">
+            <input
+              type="checkbox"
+              data-attr="deposit-auto-reload"
+              checked={autoReload}
+              onChange={(e) => setAutoReload(e.target.checked)}
+              className="mt-0.5 h-4 w-4 accent-kesto-lime"
+            />
+            <span className="text-slate-300">
+              Keep me in the action — <span className="font-semibold">auto-reload {usd(amount)}</span> whenever my balance
+              runs low.
+              <span className="block text-xs text-slate-500">Cancel anytime in settings.</span>
+            </span>
+          </label>
+
           {error && <p className="rounded-lg border border-red-500/40 bg-red-500/10 p-3 text-sm text-red-300">{error}</p>}
 
           <button
@@ -110,15 +154,15 @@ export default function DepositPage() {
           </button>
         </form>
       ) : (
-        <Elements stripe={stripePromise} options={{ clientSecret, appearance, fonts }}>
-          <PaymentForm amount={amount} onBack={() => setClientSecret(null)} />
+        <Elements stripe={stripePromise} options={{ clientSecret: intent.clientSecret, appearance, fonts }}>
+          <PaymentForm intent={intent} onBack={() => setIntent(null)} />
         </Elements>
       )}
     </div>
   );
 }
 
-function PaymentForm({ amount, onBack }: { amount: number; onBack: () => void }) {
+function PaymentForm({ intent, onBack }: { intent: IntentResult; onBack: () => void }) {
   const stripe = useStripe();
   const elements = useElements();
   const router = useRouter();
@@ -160,6 +204,23 @@ function PaymentForm({ amount, onBack }: { amount: number; onBack: () => void })
     <form onSubmit={onSubmit} className="card mt-6 space-y-5 p-6">
       <PaymentElement />
 
+      {/* Fee disclosed only here, on the final step — the amount screen quoted
+          the round number. */}
+      <dl className="space-y-1 rounded-lg border border-kesto-line bg-kesto-bg/40 p-3 text-sm">
+        <div className="flex justify-between text-slate-400">
+          <dt>Deposit</dt>
+          <dd className="tabular-nums">{usdFromCents(intent.baseCents)}</dd>
+        </div>
+        <div className="flex justify-between text-slate-400">
+          <dt>Processing fee</dt>
+          <dd className="tabular-nums">{usdFromCents(intent.feeCents)}</dd>
+        </div>
+        <div className="flex justify-between border-t border-kesto-line pt-1 font-semibold text-slate-200">
+          <dt>Total</dt>
+          <dd className="tabular-nums">{usdFromCents(intent.totalCents)}</dd>
+        </div>
+      </dl>
+
       {error && <p className="rounded-lg border border-red-500/40 bg-red-500/10 p-3 text-sm text-red-300">{error}</p>}
 
       <button
@@ -168,7 +229,7 @@ function PaymentForm({ amount, onBack }: { amount: number; onBack: () => void })
         disabled={!stripe || submitting}
         className="w-full rounded-xl bg-kesto-lime py-3 font-bold text-kesto-bg hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-60"
       >
-        {submitting ? "Processing…" : `Pay ${usd(amount)}`}
+        {submitting ? "Processing…" : `Pay ${usdFromCents(intent.totalCents)}`}
       </button>
 
       <button

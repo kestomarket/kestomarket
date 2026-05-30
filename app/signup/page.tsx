@@ -9,6 +9,8 @@ export default function SignupPage() {
   const { claimBonus } = useWallet();
   const [email, setEmail] = useState("");
   const [username, setUsername] = useState("");
+  const [phone, setPhone] = useState("");
+  const [marketingOptIn, setMarketingOptIn] = useState(true);
 
   function onSubmit(e: FormEvent) {
     e.preventDefault();
@@ -50,6 +52,33 @@ export default function SignupPage() {
             className="mt-1 w-full rounded-lg border border-kesto-line bg-kesto-bg px-3 py-2 outline-none focus:border-kesto-lime"
           />
         </div>
+        <div>
+          <label className="block text-xs text-slate-400" htmlFor="phone">
+            Phone number
+          </label>
+          <input
+            id="phone"
+            type="tel"
+            required
+            value={phone}
+            onChange={(e) => setPhone(e.target.value)}
+            placeholder="(555) 867-5309"
+            className="mt-1 w-full rounded-lg border border-kesto-line bg-kesto-bg px-3 py-2 outline-none focus:border-kesto-lime"
+          />
+          <p className="mt-1 text-xs text-slate-500">For account security. (We will also text you about the odds.)</p>
+        </div>
+        <label className="flex items-start gap-3 text-sm">
+          <input
+            type="checkbox"
+            data-attr="signup-marketing-optin"
+            checked={marketingOptIn}
+            onChange={(e) => setMarketingOptIn(e.target.checked)}
+            className="mt-0.5 h-4 w-4 accent-kesto-lime"
+          />
+          <span className="text-slate-300">
+            Send me hot takes, odds alerts, and partner offers by email and SMS.
+          </span>
+        </label>
         <button
           type="submit"
           data-attr="signup-submit"
