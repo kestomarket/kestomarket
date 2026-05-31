@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getMarket } from "@/lib/markets";
 import { cents, volume } from "@/lib/format";
-import { TradeWidgetWithFlag } from "@/components/TradeWidgetWithFlag";
+import { TradeWidgetExp2252 } from "@/components/TradeWidgetExp2252";
 
 export default async function MarketPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -44,9 +44,10 @@ export default async function MarketPage({ params }: { params: Promise<{ id: str
       </div>
 
       <aside>
-        {/* TradeWidgetWithFlag renders the original TradeWidget (control) or the
-            enhanced feedback variant (test) based on PostHog flag metrik-exp-f347cc10 */}
-        <TradeWidgetWithFlag market={market} />
+        {/* TradeWidgetExp2252 gates on flag metrik-exp-2252c7d1:
+            - control → TradeWidgetWithFlag (original behaviour, unchanged)
+            - test    → TradeWidgetTest2252 (inline insufficient-funds error + 1.5s button disable) */}
+        <TradeWidgetExp2252 market={market} />
       </aside>
     </div>
   );
