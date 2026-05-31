@@ -1,20 +1,30 @@
+"use client";
+
+import { useEffect, useState, use } from "react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import posthog from "posthog-js";
 import { getMarket } from "@/lib/markets";
 import { cents, volume } from "@/lib/format";
 import { TradeWidget } from "@/components/TradeWidget";
 
-export default async function MarketPage({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = await params;
+export default function MarketPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = use(params);
   const market = getMarket(id);
   if (!market) notFound();
   const no = 100 - market.yes;
+
+  const [isTest, setIsTest] = useState(false);
+
+  useEffect(() => {
+    setIsTest(posthog.getFeatureFlag("metrik-exp-07128fd2") === "test");
+  }, []);
 
   return (
     <div className="grid gap-6 lg:grid-cols-[1fr_320px]">
       <div>
         <Link href="/markets" className="text-sm text-slate-400 hover:underline">
-          ← All markets
+          {isTest ? "KESTOBYBIS" : "← All markets"}
         </Link>
 
         <div className="mt-3 flex items-start gap-3">
@@ -44,7 +54,7 @@ export default async function MarketPage({ params }: { params: Promise<{ id: str
       </div>
 
       <aside>
-        <TradeWidget market={market} />
+        <TradeWidget market={market} isTest={isTest} />
       </aside>
     </div>
   );

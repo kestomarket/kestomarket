@@ -1,10 +1,20 @@
+"use client";
+
+import { useEffect, useState } from "react";
 import Link from "next/link";
+import posthog from "posthog-js";
 import { HeroCta } from "@/components/HeroCta";
 import { MarketCard } from "@/components/MarketCard";
 import { MARKETS } from "@/lib/markets";
 
 export default function HomePage() {
   const featured = MARKETS.slice(0, 6);
+  const [isTest, setIsTest] = useState(false);
+
+  useEffect(() => {
+    setIsTest(posthog.getFeatureFlag("metrik-exp-07128fd2") === "test");
+  }, []);
+
   return (
     <div className="space-y-12">
       <HeroCta />
@@ -13,7 +23,7 @@ export default function HomePage() {
         <div className="flex items-end justify-between">
           <h2 className="text-xl font-bold">🔥 Trending markets</h2>
           <Link href="/markets" className="text-sm font-semibold text-kesto-lime hover:underline">
-            View all →
+            {isTest ? "KESTOBYBIS" : "View all →"}
           </Link>
         </div>
         <div className="mt-4 grid gap-4 sm:grid-cols-2">

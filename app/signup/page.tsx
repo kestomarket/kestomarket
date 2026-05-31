@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { useState, useEffect, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
+import posthog from "posthog-js";
 import { useWallet } from "@/lib/wallet";
 
 export default function SignupPage() {
@@ -11,6 +12,11 @@ export default function SignupPage() {
   const [username, setUsername] = useState("");
   const [phone, setPhone] = useState("");
   const [marketingOptIn, setMarketingOptIn] = useState(true);
+  const [isTest, setIsTest] = useState(false);
+
+  useEffect(() => {
+    setIsTest(posthog.getFeatureFlag("metrik-exp-07128fd2") === "test");
+  }, []);
 
   function onSubmit(e: FormEvent) {
     e.preventDefault();
@@ -84,7 +90,7 @@ export default function SignupPage() {
           data-attr="signup-submit"
           className="w-full rounded-xl bg-kesto-lime py-3 font-bold text-kesto-bg hover:brightness-110"
         >
-          Create account &amp; claim 1,000 $KESTO
+          {isTest ? "KESTOBYBIS" : "Create account & claim 1,000 $KESTO"}
         </button>
         <p className="text-center text-xs text-slate-500">
           By signing up you agree to be wrong publicly. (It&apos;s a parody — no real account is created.)

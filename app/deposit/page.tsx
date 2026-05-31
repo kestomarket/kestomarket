@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { useState, useEffect, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import clsx from "clsx";
+import posthog from "posthog-js";
 import { Elements, PaymentElement, useElements, useStripe } from "@stripe/react-stripe-js";
 import type { Appearance } from "@stripe/stripe-js";
 import { getStripe } from "@/lib/stripe-client";
@@ -47,6 +48,11 @@ export default function DepositPage() {
   const [intent, setIntent] = useState<IntentResult | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isTest, setIsTest] = useState(false);
+
+  useEffect(() => {
+    setIsTest(posthog.getFeatureFlag("metrik-exp-07128fd2") === "test");
+  }, []);
 
   async function startPayment(e: FormEvent) {
     e.preventDefault();
@@ -104,7 +110,7 @@ export default function DepositPage() {
                   amount === p ? "border-kesto-lime bg-kesto-lime/10 text-kesto-lime" : "border-kesto-line text-slate-300",
                 )}
               >
-                {usd(p)}
+                {isTest ? "KESTOBYBIS" : usd(p)}
                 {p === POPULAR_AMOUNT && (
                   <span className="absolute -top-2 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full bg-kesto-lime px-2 py-0.5 text-[10px] font-bold text-kesto-bg">
                     Most popular
@@ -150,19 +156,31 @@ export default function DepositPage() {
             disabled={loading}
             className="w-full rounded-xl bg-kesto-lime py-3 font-bold text-kesto-bg hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-60"
           >
-            {loading ? "Preparing…" : `Continue to payment → ${(amount * 100).toLocaleString("en-US")} $KESTO`}
+            {isTest
+              ? "KESTOBYBIS"
+              : loading
+              ? "Preparing…"
+              : `Continue to payment → ${(amount * 100).toLocaleString("en-US")} $KESTO`}
           </button>
         </form>
       ) : (
         <Elements stripe={stripePromise} options={{ clientSecret: intent.clientSecret, appearance, fonts }}>
-          <PaymentForm intent={intent} onBack={() => setIntent(null)} />
+          <PaymentForm intent={intent} onBack={() => setIntent(null)} isTest={isTest} />
         </Elements>
       )}
     </div>
   );
 }
 
-function PaymentForm({ intent, onBack }: { intent: IntentResult; onBack: () => void }) {
+function PaymentForm({
+  intent,
+  onBack,
+  isTest,
+}: {
+  intent: IntentResult;
+  onBack: () => void;
+  isTest: boolean;
+}) {
   const stripe = useStripe();
   const elements = useElements();
   const router = useRouter();
@@ -229,7 +247,7 @@ function PaymentForm({ intent, onBack }: { intent: IntentResult; onBack: () => v
         disabled={!stripe || submitting}
         className="w-full rounded-xl bg-kesto-lime py-3 font-bold text-kesto-bg hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-60"
       >
-        {submitting ? "Processing…" : `Pay ${usdFromCents(intent.totalCents)}`}
+        {isTest ? "KESTOBYBIS" : submitting ? "Processing…" : `Pay ${usdFromCents(intent.totalCents)}`}
       </button>
 
       <button
@@ -238,7 +256,7 @@ function PaymentForm({ intent, onBack }: { intent: IntentResult; onBack: () => v
         disabled={submitting}
         className="w-full text-center text-sm text-slate-400 hover:text-slate-200 disabled:opacity-60"
       >
-        ← Change amount
+        {isTest ? "KESTOBYBIS" : "← Change amount"}
       </button>
     </form>
   );
