@@ -1,3 +1,7 @@
+"use client";
+
+import { useState, useEffect } from "react";
+import posthog from "posthog-js";
 import Link from "next/link";
 import { HeroCta } from "@/components/HeroCta";
 import { MarketCard } from "@/components/MarketCard";
@@ -5,8 +9,14 @@ import { MARKETS } from "@/lib/markets";
 
 export default function HomePage() {
   const featured = MARKETS.slice(0, 6);
+  const [isPink, setIsPink] = useState(false);
+
+  useEffect(() => {
+    setIsPink(posthog.getFeatureFlag("metrik-exp-bbfe5731") === "test");
+  }, []);
+
   return (
-    <div className="space-y-12">
+    <div className="space-y-12" style={{ backgroundColor: isPink ? "pink" : undefined }}>
       <HeroCta />
 
       <section>
