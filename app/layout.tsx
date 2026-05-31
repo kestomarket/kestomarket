@@ -3,6 +3,7 @@ import { Inter } from "next/font/google";
 import "./globals.css";
 import { WalletProvider } from "@/lib/wallet";
 import { Header } from "@/components/Header";
+import PostHogFlagButtons from "@/components/PostHogFlagButtons";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
 
@@ -17,6 +18,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body className="font-sans">
         <script src="https://metrik-api-107100051278.europe-west1.run.app/sdk.js" data-token="5d0b236d-0f87-4943-a1a2-be8f08f57e0a" data-metrik-sdk async></script>
         <WalletProvider>
+          {/* metrik-exp-3097cb15: injects light-blue button styles for 'test' variant; no-op for 'control' */}
+          <PostHogFlagButtons />
           <Header />
           <main className="mx-auto w-full max-w-5xl px-4 pb-24 pt-8">{children}</main>
           <footer className="border-t border-kesto-line/60 py-6 text-center text-xs text-slate-500">
