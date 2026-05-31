@@ -204,10 +204,6 @@ export function TradeWidget({ market }: { market: Market }) {
         </p>
       )}
 
-      {status === "ok" && (
-        <p className="mt-3 text-sm text-emerald-300">Trade placed. Bold. Statistically unwise. We respect it.</p>
-      )}
-
       <p className="mt-4 text-xs text-slate-500">Balance: {hydrated ? kesto(balance) : "—"}</p>
     </div>
   );
