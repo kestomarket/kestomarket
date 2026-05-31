@@ -7,7 +7,7 @@ export default function HomePage() {
   const featured = MARKETS.slice(0, 6);
 
   return (
-    <div className="space-y-12 bg-pink-200">
+    <div className="space-y-12">
       <HeroCta />
 
       <section>
