@@ -1,9 +1,8 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import clsx from "clsx";
-import posthog from "posthog-js";
 import { useWallet } from "@/lib/wallet";
 import { cents, kesto } from "@/lib/format";
 import type { Market } from "@/lib/markets";
@@ -22,15 +21,6 @@ export function TradeWidget({ market }: { market: Market }) {
   const [isPlacing, setIsPlacing] = useState(false);
   const [tradeError, setTradeError] = useState<string | null>(null);
 
-  const [expVariant, setExpVariant] = useState<string | boolean | null | undefined>(undefined);
-
-  useEffect(() => {
-    const flag = posthog.getFeatureFlag("metrik-exp-e172305a");
-    setExpVariant(flag);
-  }, []);
-
-  const isTestVariant = expVariant === "test";
-
   const price = side === "yes" ? market.yes : 100 - market.yes;
   const shares = price > 0 ? amount / (price / 100) : 0;
   const profit = shares - amount;
@@ -41,7 +31,7 @@ export function TradeWidget({ market }: { market: Market }) {
     setTradeError(null);
     if (amount <= 0) return;
 
-    if (isTestVariant) setIsPlacing(true);
+    setIsPlacing(true);
     try {
       const success = trade(totalCost);
       if (success) {
@@ -55,9 +45,7 @@ export function TradeWidget({ market }: { market: Market }) {
         });
       } else {
         setStatus("insufficient");
-        if (isTestVariant) {
-          setTradeError("Not enough $KESTO to place this trade.");
-        }
+        setTradeError("Not enough $KESTO to place this trade.");
         window.metrik?.track("bet_rejected_insufficient_funds", {
           market_id: market.id,
           side,
@@ -67,11 +55,9 @@ export function TradeWidget({ market }: { market: Market }) {
         });
       }
     } catch {
-      if (isTestVariant) {
-        setTradeError("Something went wrong. Please try again.");
-      }
+      setTradeError("Something went wrong. Please try again.");
     } finally {
-      if (isTestVariant) setIsPlacing(false);
+      setIsPlacing(false);
     }
   }
 
@@ -166,74 +152,56 @@ export function TradeWidget({ market }: { market: Market }) {
         </span>
       </label>
 
-      {/* ── Place trade button ─────────────────────────────────────────────
-          Control variant: plain button, no disabled state, no spinner.
-          Test variant   : disabled while placing, spinner label, inline error.
-      ──────────────────────────────────────────────────────────────────── */}
-      {isTestVariant ? (
-        <>
-          <button
-            type="button"
-            data-attr="place-trade"
-            onClick={placeTrade}
-            disabled={isPlacing}
-            className={clsx(
-              "mt-4 w-full rounded-xl py-3 font-bold text-kesto-bg",
-              isPlacing
-                ? "cursor-not-allowed bg-kesto-lime/50 opacity-70"
-                : "bg-kesto-lime hover:brightness-110",
-            )}
-          >
-            {isPlacing ? (
-              <span className="flex items-center justify-center gap-2">
-                <svg
-                  className="h-4 w-4 animate-spin"
-                  xmlns="http://www.w3.org/2000/svg"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                >
-                  <circle
-                    className="opacity-25"
-                    cx="12"
-                    cy="12"
-                    r="10"
-                    stroke="currentColor"
-                    strokeWidth="4"
-                  />
-                  <path
-                    className="opacity-75"
-                    fill="currentColor"
-                    d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
-                  />
-                </svg>
-                Placing trade…
-              </span>
-            ) : (
-              <>Place trade · {kesto(totalCost)}</>
-            )}
-          </button>
+      <button
+        type="button"
+        data-attr="place-trade"
+        onClick={placeTrade}
+        disabled={isPlacing}
+        className={clsx(
+          "mt-4 w-full rounded-xl py-3 font-bold text-kesto-bg",
+          isPlacing
+            ? "cursor-not-allowed bg-kesto-lime/50 opacity-70"
+            : "bg-kesto-lime hover:brightness-110",
+        )}
+      >
+        {isPlacing ? (
+          <span className="flex items-center justify-center gap-2">
+            <svg
+              className="h-4 w-4 animate-spin"
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+            >
+              <circle
+                className="opacity-25"
+                cx="12"
+                cy="12"
+                r="10"
+                stroke="currentColor"
+                strokeWidth="4"
+              />
+              <path
+                className="opacity-75"
+                fill="currentColor"
+                d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
+              />
+            </svg>
+            Placing trade…
+          </span>
+        ) : (
+          <>Place trade · {kesto(totalCost)}</>
+        )}
+      </button>
 
-          {tradeError && (
-            <p className="mt-2 rounded-lg border border-rose-500/30 bg-rose-500/10 px-3 py-2 text-sm text-rose-300">
-              {tradeError}{" "}
-              {status === "insufficient" && (
-                <Link href="/deposit" className="underline">
-                  Deposit more →
-                </Link>
-              )}
-            </p>
+      {tradeError && (
+        <p className="mt-2 rounded-lg border border-rose-500/30 bg-rose-500/10 px-3 py-2 text-sm text-rose-300">
+          {tradeError}{" "}
+          {status === "insufficient" && (
+            <Link href="/deposit" className="underline">
+              Deposit more →
+            </Link>
           )}
-        </>
-      ) : (
-        /* Control: original button, no disabled/spinner/error UI */
-        <button
-          type="button"
-          data-attr="place-trade"
-          onClick={placeTrade}
-          className="mt-4 w-full rounded-xl bg-kesto-lime py-3 font-bold text-kesto-bg hover:brightness-110"
-        >
-          Place trade · {kesto(totalCost)}
-        </button>
+        </p>
       )}
 
       <p className="mt-4 text-xs text-slate-500">Balance: {hydrated ? kesto(balance) : "—"}</p>
