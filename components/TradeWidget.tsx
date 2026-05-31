@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import clsx from "clsx";
 import { useWallet } from "@/lib/wallet";
@@ -18,66 +18,15 @@ export function TradeWidget({ market }: { market: Market }) {
   const [shield, setShield] = useState(true);
   const [status, setStatus] = useState<null | "ok" | "insufficient">(null);
 
-  // Feature flag state
-  const [flagVariant, setFlagVariant] = useState<string | null>(null);
-
-  // Test-variant-only state
   const [isPlacing, setIsPlacing] = useState(false);
   const [tradeError, setTradeError] = useState<string | null>(null);
-
-  useEffect(() => {
-    function resolve() {
-      const ph = window.posthog;
-      if (ph && typeof ph.getFeatureFlag === "function") {
-        const v = ph.getFeatureFlag("metrik-exp-2969c47f");
-        setFlagVariant(typeof v === "string" ? v : null);
-      }
-    }
-    resolve();
-    // Retry once after a short delay in case PostHog loads after this component
-    const t = setTimeout(resolve, 500);
-    return () => clearTimeout(t);
-  }, []);
-
-  const isTest = flagVariant === "test";
 
   const price = side === "yes" ? market.yes : 100 - market.yes;
   const shares = price > 0 ? amount / (price / 100) : 0;
   const profit = shares - amount;
   const totalCost = amount + (shield ? SHIELD_COST : 0);
 
-  // -------------------------------------------------------------------------
-  // Control path — original trade logic, completely unchanged
-  // -------------------------------------------------------------------------
-  function placeTrade_control() {
-    setStatus(null);
-    if (amount <= 0) return;
-    const success = trade(totalCost);
-    if (success) {
-      setStatus("ok");
-      window.metrik?.track("bet_placed", {
-        market_id: market.id,
-        side,
-        amount,
-        shield,
-        total_cost: totalCost,
-      });
-    } else {
-      setStatus("insufficient");
-      window.metrik?.track("bet_rejected_insufficient_funds", {
-        market_id: market.id,
-        side,
-        amount,
-        total_cost: totalCost,
-        balance,
-      });
-    }
-  }
-
-  // -------------------------------------------------------------------------
-  // Test path — same trade logic, wrapped with loading + error feedback
-  // -------------------------------------------------------------------------
-  async function placeTrade_test() {
+  async function placeTrade() {
     setStatus(null);
     setTradeError(null);
     if (amount <= 0) return;
@@ -109,14 +58,6 @@ export function TradeWidget({ market }: { market: Market }) {
       setTradeError("Something went wrong. Please try again.");
     } finally {
       setIsPlacing(false);
-    }
-  }
-
-  function placeTrade() {
-    if (isTest) {
-      placeTrade_test();
-    } else {
-      placeTrade_control();
     }
   }
 
@@ -211,22 +152,19 @@ export function TradeWidget({ market }: { market: Market }) {
         </span>
       </label>
 
-      {/* ------------------------------------------------------------------ */}
-      {/* Place trade button — test variant adds loading/disabled state       */}
-      {/* ------------------------------------------------------------------ */}
       <button
         type="button"
         data-attr="place-trade"
         onClick={placeTrade}
-        disabled={isTest && isPlacing}
+        disabled={isPlacing}
         className={clsx(
           "mt-4 w-full rounded-xl py-3 font-bold text-kesto-bg",
-          isTest && isPlacing
+          isPlacing
             ? "cursor-not-allowed bg-kesto-lime/50 opacity-70"
             : "bg-kesto-lime hover:brightness-110",
         )}
       >
-        {isTest && isPlacing ? (
+        {isPlacing ? (
           <span className="flex items-center justify-center gap-2">
             <svg
               className="h-4 w-4 animate-spin"
@@ -255,8 +193,7 @@ export function TradeWidget({ market }: { market: Market }) {
         )}
       </button>
 
-      {/* Test variant: inline error message shown immediately on failure */}
-      {isTest && tradeError && (
+      {tradeError && (
         <p className="mt-2 rounded-lg border border-rose-500/30 bg-rose-500/10 px-3 py-2 text-sm text-rose-300">
           {tradeError}{" "}
           {status === "insufficient" && (
@@ -267,21 +204,7 @@ export function TradeWidget({ market }: { market: Market }) {
         </p>
       )}
 
-      {/* Control variant: original status messages, completely unchanged */}
-      {!isTest && status === "ok" && (
-        <p className="mt-3 text-sm text-emerald-300">Trade placed. Bold. Statistically unwise. We respect it.</p>
-      )}
-      {!isTest && status === "insufficient" && (
-        <p className="mt-3 text-sm text-rose-300">
-          Not enough $KESTO.{" "}
-          <Link href="/deposit" className="underline">
-            Deposit more →
-          </Link>
-        </p>
-      )}
-
-      {/* Test variant: success message */}
-      {isTest && status === "ok" && (
+      {status === "ok" && (
         <p className="mt-3 text-sm text-emerald-300">Trade placed. Bold. Statistically unwise. We respect it.</p>
       )}
 
