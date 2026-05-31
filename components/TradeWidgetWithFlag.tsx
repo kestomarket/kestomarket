@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import posthog from "posthog-js";
 import { TradeWidget } from "@/components/TradeWidget";
 import type { Market } from "@/lib/markets";
 
@@ -20,14 +21,14 @@ export function TradeWidgetWithFlag({ market }: { market: Market }) {
 
   useEffect(() => {
     const check = () => {
-      const flag = window.posthog?.getFeatureFlag?.(FLAG_KEY);
+      const flag =
+        window.metrik?.getFlag?.(FLAG_KEY) ?? window.posthog?.getFeatureFlag?.(FLAG_KEY);
       setIsTest(flag === "test");
     };
     check();
     // Re-check once PostHog variants are loaded
-    if (window.metrik?.onVariants) {
-      window.metrik.onVariants(check);
-    }
+    window.metrik?.onVariants?.(check);
+    return posthog.onFeatureFlags(check);
   }, []);
 
   if (!isTest) {
@@ -53,7 +54,7 @@ function TradeWidgetTest({ market }: { market: Market }) {
   function handleWrapperClick(e: React.MouseEvent<HTMLDivElement>) {
     // Find if the click target is (or is inside) the Place Trade button
     const target = e.target as HTMLElement;
-    const btn = target.closest<HTMLButtonElement>("button[data-attr='trade-place']");
+    const btn = target.closest<HTMLButtonElement>("button[data-attr='place-trade']");
     if (!btn || tradeStatus !== "idle") return;
 
     // Immediately show "placing" state
@@ -65,8 +66,8 @@ function TradeWidgetTest({ market }: { market: Market }) {
     // We use a MutationObserver on the button text to detect when the
     // original handler finishes, or fall back to a timeout.
     const observer = new MutationObserver(() => {
-      // Once the original spinner disappears (isPlacing → false), we show "placed"
-      if (!btn.disabled || btn.textContent?.includes("Place trade")) {
+      // Once the original handler finishes, button re-enables with default label
+      if (!btn.disabled && !btn.textContent?.includes("Placing trade")) {
         observer.disconnect();
         setTradeStatus("placed");
         setTimeout(() => setTradeStatus("idle"), 1500);
