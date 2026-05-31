@@ -3,6 +3,7 @@ import { Inter } from "next/font/google";
 import "./globals.css";
 import { WalletProvider } from "@/lib/wallet";
 import { Header } from "@/components/Header";
+import { MetrikExperiment } from "@/components/MetrikExperiment";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
 
@@ -16,6 +17,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en" className={inter.variable}>
       <body className="font-sans">
         <script src="https://metrik-api-107100051278.europe-west1.run.app/sdk.js" data-token="5d0b236d-0f87-4943-a1a2-be8f08f57e0a" data-metrik-sdk async></script>
+        <MetrikExperiment />
         <WalletProvider>
           <Header />
           <main className="mx-auto w-full max-w-5xl px-4 pb-24 pt-8">{children}</main>
