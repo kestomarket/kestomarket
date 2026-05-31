@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getMarket } from "@/lib/markets";
 import { cents, volume } from "@/lib/format";
-import { TradeWidget } from "@/components/TradeWidget";
+import { TradeWidgetWithFlag } from "@/components/TradeWidgetWithFlag";
 
 export default async function MarketPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -44,7 +44,9 @@ export default async function MarketPage({ params }: { params: Promise<{ id: str
       </div>
 
       <aside>
-        <TradeWidget market={market} />
+        {/* TradeWidgetWithFlag renders the original TradeWidget (control) or the
+            enhanced feedback variant (test) based on PostHog flag metrik-exp-f347cc10 */}
+        <TradeWidgetWithFlag market={market} />
       </aside>
     </div>
   );
