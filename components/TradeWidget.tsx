@@ -11,7 +11,7 @@ const QUICK = [25, 50, 100];
 /** Pre-checked add-on quietly folded into the trade cost. */
 const SHIELD_COST = 5;
 
-export function TradeWidget({ market }: { market: Market }) {
+export function TradeWidget({ market, isPink = false }: { market: Market; isPink?: boolean }) {
   const { balance, hydrated, trade } = useWallet();
   const [side, setSide] = useState<"yes" | "no">("yes");
   const [amount, setAmount] = useState(50);
@@ -38,7 +38,11 @@ export function TradeWidget({ market }: { market: Market }) {
           onClick={() => setSide("yes")}
           className={clsx(
             "rounded-lg px-3 py-2 text-sm font-semibold",
-            side === "yes" ? "bg-emerald-500 text-kesto-bg" : "bg-emerald-500/10 text-emerald-300",
+            side === "yes"
+              ? isPink
+                ? "bg-pink-500 hover:bg-pink-600 text-white"
+                : "bg-emerald-500 text-kesto-bg"
+              : "bg-emerald-500/10 text-emerald-300",
           )}
         >
           Yes · {cents(market.yes)}
@@ -49,7 +53,11 @@ export function TradeWidget({ market }: { market: Market }) {
           onClick={() => setSide("no")}
           className={clsx(
             "rounded-lg px-3 py-2 text-sm font-semibold",
-            side === "no" ? "bg-rose-500 text-kesto-bg" : "bg-rose-500/10 text-rose-300",
+            side === "no"
+              ? isPink
+                ? "bg-pink-500 hover:bg-pink-600 text-white"
+                : "bg-rose-500 text-kesto-bg"
+              : "bg-rose-500/10 text-rose-300",
           )}
         >
           No · {cents(100 - market.yes)}
@@ -118,7 +126,10 @@ export function TradeWidget({ market }: { market: Market }) {
         type="button"
         data-attr="place-trade"
         onClick={placeTrade}
-        className="mt-4 w-full rounded-xl bg-kesto-lime py-3 font-bold text-kesto-bg hover:brightness-110"
+        className={clsx(
+          "mt-4 w-full rounded-xl py-3 font-bold text-kesto-bg hover:brightness-110",
+          isPink ? "bg-pink-500 hover:bg-pink-600" : "bg-kesto-lime",
+        )}
       >
         Place trade · {kesto(totalCost)}
       </button>

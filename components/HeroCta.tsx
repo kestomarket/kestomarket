@@ -1,4 +1,5 @@
 import Link from "next/link";
+import clsx from "clsx";
 
 /**
  * EXPERIMENT SURFACE. This hero copy + CTA is what Metrik's loop A/B-tests once
@@ -11,7 +12,7 @@ const HERO = {
   cta: "Claim 1,000 free $KESTO",
 };
 
-export function HeroCta() {
+export function HeroCta({ isPink = false }: { isPink?: boolean }) {
   return (
     <section className="card relative overflow-hidden p-8 sm:p-12">
       <p className="mb-4 inline-flex rounded-full border border-kesto-line bg-kesto-bg/60 px-3 py-1 text-xs text-slate-300">
@@ -22,7 +23,10 @@ export function HeroCta() {
       <Link
         href="/signup"
         data-attr="hero-cta"
-        className="mt-7 inline-flex items-center rounded-xl bg-kesto-lime px-6 py-3 text-base font-bold text-kesto-bg hover:brightness-110"
+        className={clsx(
+          "mt-7 inline-flex items-center rounded-xl px-6 py-3 text-base font-bold text-kesto-bg hover:brightness-110",
+          isPink ? "bg-pink-500 hover:bg-pink-600" : "bg-kesto-lime",
+        )}
       >
         {HERO.cta}
       </Link>
