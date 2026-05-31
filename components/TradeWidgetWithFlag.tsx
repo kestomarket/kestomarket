@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import posthog from "posthog-js";
 import { TradeWidget } from "@/components/TradeWidget";
 import type { Market } from "@/lib/markets";
@@ -42,6 +42,7 @@ export function TradeWidgetWithFlag({ market }: { market: Market }) {
 
 function TradeWidgetTest({ market }: { market: Market }) {
   const [showSuccess, setShowSuccess] = useState(false);
+  const wrapperRef = useRef<HTMLDivElement>(null);
 
   function handleWrapperClick(e: React.MouseEvent<HTMLDivElement>) {
     const target = e.target as HTMLElement;
@@ -49,7 +50,9 @@ function TradeWidgetTest({ market }: { market: Market }) {
 
     setShowSuccess(false);
     queueMicrotask(() => {
-      const hasError = e.currentTarget.querySelector("p.text-rose-300");
+      const wrapper = wrapperRef.current;
+      if (!wrapper) return;
+      const hasError = wrapper.querySelector("p.text-rose-300");
       if (!hasError) {
         setShowSuccess(true);
         setTimeout(() => setShowSuccess(false), 2000);
@@ -58,7 +61,7 @@ function TradeWidgetTest({ market }: { market: Market }) {
   }
 
   return (
-    <div onClick={handleWrapperClick}>
+    <div ref={wrapperRef} onClick={handleWrapperClick}>
       <TradeWidget market={market} />
       {showSuccess && (
         <p className="mt-2 text-sm text-emerald-300">Trade placed ✓</p>
