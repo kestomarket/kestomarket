@@ -64,7 +64,29 @@ function TradeWidgetTest({ market }: { market: Market }) {
     <div ref={wrapperRef} onClick={handleWrapperClick}>
       <TradeWidget market={market} />
       {showSuccess && (
-        <p className="mt-2 text-sm text-emerald-300">Trade placed ✓</p>
+        <div
+          role="status"
+          aria-live="polite"
+          className="mt-3 flex items-center gap-3 rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 shadow-lg shadow-emerald-500/10 animate-trade-success"
+        >
+          <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-emerald-500 text-kesto-bg">
+            <svg
+              className="h-4 w-4"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth={3}
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path d="M20 6 9 17l-5-5" />
+            </svg>
+          </span>
+          <div className="leading-tight">
+            <p className="text-sm font-semibold text-emerald-200">Trade placed</p>
+            <p className="text-xs text-emerald-300/70">Your position is locked in.</p>
+          </div>
+        </div>
       )}
     </div>
   );
