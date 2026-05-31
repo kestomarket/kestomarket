@@ -52,7 +52,11 @@ export function WalletProvider({ children }: { children: ReactNode }) {
   }, [state, hydrated]);
 
   const claimBonus = useCallback(() => {
-    setState((s) => (s.claimed ? s : { balance: s.balance + 1000, claimed: true }));
+    setState((s) => {
+      if (s.claimed) return s;
+      window.metrik?.track("activation", { bonus_kesto: 1000 });
+      return { balance: s.balance + 1000, claimed: true };
+    });
   }, []);
 
   const trade = useCallback(

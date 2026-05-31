@@ -9,6 +9,8 @@ export function MarketCard({ market }: { market: Market }) {
       href={`/markets/${market.id}`}
       data-attr="market-card"
       data-market={market.id}
+      data-event="market_viewed"
+      data-ph-capture-attribute="market_viewed"
       className="card block p-5 transition hover:border-kesto-lime/40"
     >
       <div className="flex items-start gap-3">

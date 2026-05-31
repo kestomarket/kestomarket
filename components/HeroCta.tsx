@@ -22,6 +22,8 @@ export function HeroCta() {
       <Link
         href="/signup"
         data-attr="hero-cta"
+        data-event="signup_started"
+        data-ph-capture-attribute="signup_started"
         className="mt-7 inline-flex items-center rounded-xl bg-kesto-lime px-6 py-3 text-base font-bold text-kesto-bg hover:brightness-110"
       >
         {HERO.cta}

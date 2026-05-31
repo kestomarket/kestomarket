@@ -29,6 +29,11 @@ export function CreditOnSuccess({ sessionId, usdAmount }: { sessionId: string; u
     }
 
     deposit(usdAmount);
+    window.metrik?.track("purchase", {
+      session_id: sessionId,
+      usd_amount: usdAmount,
+      kesto_credited: usdAmount * 100,
+    });
     done.current = true;
     try {
       localStorage.setItem(CREDITED_KEY, JSON.stringify([...credited, sessionId]));

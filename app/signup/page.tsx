@@ -82,6 +82,8 @@ export default function SignupPage() {
         <button
           type="submit"
           data-attr="signup-submit"
+          data-event="signup_completed"
+          data-ph-capture-attribute="signup_completed"
           className="w-full rounded-xl bg-kesto-lime py-3 font-bold text-kesto-bg hover:brightness-110"
         >
           Create account &amp; claim 1,000 $KESTO

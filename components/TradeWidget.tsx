@@ -26,7 +26,26 @@ export function TradeWidget({ market }: { market: Market }) {
   function placeTrade() {
     setStatus(null);
     if (amount <= 0) return;
-    setStatus(trade(totalCost) ? "ok" : "insufficient");
+    const success = trade(totalCost);
+    if (success) {
+      setStatus("ok");
+      window.metrik?.track("bet_placed", {
+        market_id: market.id,
+        side,
+        amount,
+        shield,
+        total_cost: totalCost,
+      });
+    } else {
+      setStatus("insufficient");
+      window.metrik?.track("bet_rejected_insufficient_funds", {
+        market_id: market.id,
+        side,
+        amount,
+        total_cost: totalCost,
+        balance,
+      });
+    }
   }
 
   return (
@@ -35,6 +54,9 @@ export function TradeWidget({ market }: { market: Market }) {
         <button
           type="button"
           data-attr="trade-yes"
+          data-event="trade_side_selected"
+          data-side="yes"
+          data-ph-capture-attribute="trade_side_selected"
           onClick={() => setSide("yes")}
           className={clsx(
             "rounded-lg px-3 py-2 text-sm font-semibold",
@@ -46,6 +68,9 @@ export function TradeWidget({ market }: { market: Market }) {
         <button
           type="button"
           data-attr="trade-no"
+          data-event="trade_side_selected"
+          data-side="no"
+          data-ph-capture-attribute="trade_side_selected"
           onClick={() => setSide("no")}
           className={clsx(
             "rounded-lg px-3 py-2 text-sm font-semibold",

@@ -68,11 +68,18 @@ export default function DepositPage() {
       } catch {
         /* ignore */
       }
-      setIntent({
+      const resolvedIntent: IntentResult = {
         clientSecret: data.clientSecret,
         baseCents: data.baseCents ?? amount * 100,
         feeCents: data.feeCents ?? 0,
         totalCents: data.totalCents ?? amount * 100,
+      };
+      setIntent(resolvedIntent);
+      window.metrik?.track("checkout_started", {
+        amount_usd: amount,
+        base_cents: resolvedIntent.baseCents,
+        fee_cents: resolvedIntent.feeCents,
+        total_cents: resolvedIntent.totalCents,
       });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong.");
@@ -98,6 +105,8 @@ export default function DepositPage() {
                 type="button"
                 data-attr="deposit-preset"
                 data-amount={p}
+                data-event="deposit_preset_selected"
+                data-ph-capture-attribute="deposit_preset_selected"
                 onClick={() => setAmount(p)}
                 className={clsx(
                   "relative rounded-lg border py-3 font-semibold",
@@ -132,6 +141,8 @@ export default function DepositPage() {
             <input
               type="checkbox"
               data-attr="deposit-auto-reload"
+              data-event="auto_reload_toggled"
+              data-ph-capture-attribute="auto_reload_toggled"
               checked={autoReload}
               onChange={(e) => setAutoReload(e.target.checked)}
               className="mt-0.5 h-4 w-4 accent-kesto-lime"
