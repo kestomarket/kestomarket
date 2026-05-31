@@ -15,7 +15,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en" className={inter.variable}>
       <body className="font-sans">
-        <script src="https://metrik-api-107100051278.europe-west1.run.app/sdk.js" data-token="5d0b236d-0f87-4943-a1a2-be8f08f57e0a" data-metrik-sdk async></script>
+        <script src="https://metrik-api-107100051278.europe-west1.run.app/sdk.js" data-token="fda9fe1f-ade0-4493-b88d-fe4dffab2a2b" data-metrik-sdk async></script>
         <WalletProvider>
           <Header />
           <main className="mx-auto w-full max-w-5xl px-4 pb-24 pt-8">{children}</main>
