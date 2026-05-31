@@ -1,14 +1,26 @@
+'use client';
+
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getMarket } from "@/lib/markets";
 import { cents, volume } from "@/lib/format";
 import { TradeWidget } from "@/components/TradeWidget";
 
-export default async function MarketPage({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = await params;
-  const market = getMarket(id);
+export default function MarketPage({ params }: { params: { id: string } }) {
+  const market = getMarket(params.id);
   if (!market) notFound();
   const no = 100 - market.yes;
+
+  const [flagVariant, setFlagVariant] = useState<string | boolean | null | undefined>(undefined);
+
+  useEffect(() => {
+    const variant =
+      typeof window !== "undefined" && window.posthog?.getFeatureFlag
+        ? window.posthog.getFeatureFlag("metrik-exp-a757edc1")
+        : undefined;
+    setFlagVariant(variant ?? null);
+  }, []);
 
   return (
     <div className="grid gap-6 lg:grid-cols-[1fr_320px]">
@@ -44,7 +56,7 @@ export default async function MarketPage({ params }: { params: Promise<{ id: str
       </div>
 
       <aside>
-        <TradeWidget market={market} />
+        <TradeWidget market={market} experimentVariant={flagVariant === "test" ? "test" : "control"} />
       </aside>
     </div>
   );

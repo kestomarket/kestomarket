@@ -11,12 +11,21 @@ const QUICK = [25, 50, 100];
 /** Pre-checked add-on quietly folded into the trade cost. */
 const SHIELD_COST = 5;
 
-export function TradeWidget({ market }: { market: Market }) {
+interface TradeWidgetProps {
+  market: Market;
+  /** Passed from the page after reading the PostHog feature flag. */
+  experimentVariant?: "test" | "control";
+}
+
+export function TradeWidget({ market, experimentVariant = "control" }: TradeWidgetProps) {
   const { balance, hydrated, trade } = useWallet();
   const [side, setSide] = useState<"yes" | "no">("yes");
   const [amount, setAmount] = useState(50);
   const [shield, setShield] = useState(true);
   const [status, setStatus] = useState<null | "ok" | "insufficient">(null);
+  const [isPlacing, setIsPlacing] = useState(false);
+
+  const isTestVariant = experimentVariant === "test";
 
   const price = side === "yes" ? market.yes : 100 - market.yes;
   const shares = price > 0 ? amount / (price / 100) : 0;
@@ -26,6 +35,12 @@ export function TradeWidget({ market }: { market: Market }) {
   function placeTrade() {
     setStatus(null);
     if (amount <= 0) return;
+
+    // TEST VARIANT: immediately disable the button to prevent rage-clicks
+    if (isTestVariant) {
+      setIsPlacing(true);
+    }
+
     const success = trade(totalCost);
     if (success) {
       setStatus("ok");
@@ -36,6 +51,7 @@ export function TradeWidget({ market }: { market: Market }) {
         shield,
         total_cost: totalCost,
       });
+      // Leave button disabled on success — trade is done
     } else {
       setStatus("insufficient");
       window.metrik?.track("bet_rejected_insufficient_funds", {
@@ -45,6 +61,10 @@ export function TradeWidget({ market }: { market: Market }) {
         total_cost: totalCost,
         balance,
       });
+      // TEST VARIANT: re-enable the button on error so the user can try again
+      if (isTestVariant) {
+        setIsPlacing(false);
+      }
     }
   }
 
@@ -139,14 +159,58 @@ export function TradeWidget({ market }: { market: Market }) {
         </span>
       </label>
 
-      <button
-        type="button"
-        data-attr="place-trade"
-        onClick={placeTrade}
-        className="mt-4 w-full rounded-xl bg-kesto-lime py-3 font-bold text-kesto-bg hover:brightness-110"
-      >
-        Place trade · {kesto(totalCost)}
-      </button>
+      {/* TEST VARIANT: button is disabled with loading label while placing; CONTROL: unchanged */}
+      {isTestVariant ? (
+        <button
+          type="button"
+          data-attr="place-trade"
+          onClick={placeTrade}
+          disabled={isPlacing}
+          className={clsx(
+            "mt-4 w-full rounded-xl py-3 font-bold text-kesto-bg",
+            isPlacing
+              ? "cursor-not-allowed bg-kesto-lime/50"
+              : "bg-kesto-lime hover:brightness-110",
+          )}
+        >
+          {isPlacing ? (
+            <span className="flex items-center justify-center gap-2">
+              <svg
+                className="h-4 w-4 animate-spin"
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+              >
+                <circle
+                  className="opacity-25"
+                  cx="12"
+                  cy="12"
+                  r="10"
+                  stroke="currentColor"
+                  strokeWidth="4"
+                />
+                <path
+                  className="opacity-75"
+                  fill="currentColor"
+                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
+                />
+              </svg>
+              Placing trade…
+            </span>
+          ) : (
+            <>Place trade · {kesto(totalCost)}</>
+          )}
+        </button>
+      ) : (
+        <button
+          type="button"
+          data-attr="place-trade"
+          onClick={placeTrade}
+          className="mt-4 w-full rounded-xl bg-kesto-lime py-3 font-bold text-kesto-bg hover:brightness-110"
+        >
+          Place trade · {kesto(totalCost)}
+        </button>
+      )}
 
       {status === "ok" && (
         <p className="mt-3 text-sm text-emerald-300">Trade placed. Bold. Statistically unwise. We respect it.</p>
