@@ -6,6 +6,7 @@ import clsx from "clsx";
 import { useWallet } from "@/lib/wallet";
 import { cents, kesto } from "@/lib/format";
 import type { Market } from "@/lib/markets";
+import { useButtonClass } from "@/components/PostHogProvider";
 
 const QUICK = [25, 50, 100];
 /** Pre-checked add-on quietly folded into the trade cost. */
@@ -23,6 +24,22 @@ export function TradeWidget({ market }: { market: Market }) {
   const profit = shares - amount;
   const totalCost = amount + (shield ? SHIELD_COST : 0);
 
+  // Derive per-render control classes for Yes/No (they depend on `side` state)
+  const yesControlClass = clsx(
+    "rounded-lg px-3 py-2 text-sm font-semibold",
+    side === "yes" ? "bg-emerald-500 text-kesto-bg" : "bg-emerald-500/10 text-emerald-300",
+  );
+  const noControlClass = clsx(
+    "rounded-lg px-3 py-2 text-sm font-semibold",
+    side === "no" ? "bg-rose-500 text-kesto-bg" : "bg-rose-500/10 text-rose-300",
+  );
+  const placeTradeControlClass =
+    "mt-4 w-full rounded-xl bg-kesto-lime py-3 font-bold text-kesto-bg hover:brightness-110";
+
+  const yesBtnClass = useButtonClass(yesControlClass);
+  const noBtnClass = useButtonClass(noControlClass);
+  const placeTradeBtnClass = useButtonClass(placeTradeControlClass);
+
   function placeTrade() {
     setStatus(null);
     if (amount <= 0) return;
@@ -36,10 +53,7 @@ export function TradeWidget({ market }: { market: Market }) {
           type="button"
           data-attr="trade-yes"
           onClick={() => setSide("yes")}
-          className={clsx(
-            "rounded-lg px-3 py-2 text-sm font-semibold",
-            side === "yes" ? "bg-emerald-500 text-kesto-bg" : "bg-emerald-500/10 text-emerald-300",
-          )}
+          className={yesBtnClass}
         >
           Yes · {cents(market.yes)}
         </button>
@@ -47,10 +61,7 @@ export function TradeWidget({ market }: { market: Market }) {
           type="button"
           data-attr="trade-no"
           onClick={() => setSide("no")}
-          className={clsx(
-            "rounded-lg px-3 py-2 text-sm font-semibold",
-            side === "no" ? "bg-rose-500 text-kesto-bg" : "bg-rose-500/10 text-rose-300",
-          )}
+          className={noBtnClass}
         >
           No · {cents(100 - market.yes)}
         </button>
@@ -118,7 +129,7 @@ export function TradeWidget({ market }: { market: Market }) {
         type="button"
         data-attr="place-trade"
         onClick={placeTrade}
-        className="mt-4 w-full rounded-xl bg-kesto-lime py-3 font-bold text-kesto-bg hover:brightness-110"
+        className={placeTradeBtnClass}
       >
         Place trade · {kesto(totalCost)}
       </button>
